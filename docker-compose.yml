@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: storage_desk
+      POSTGRES_USER: storage_app
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env}
+    ports:
+      - "5432:5432"
+    volumes:
+      - storage-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U storage_app -d storage_desk"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  storage-postgres:

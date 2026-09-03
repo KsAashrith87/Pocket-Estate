@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create account | Pocket Estate</title><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/overrides.css"><link rel="stylesheet" href="/auth.css"><link rel="stylesheet" href="/profile.css">
+</head>
+<body class="login-page">
+<main class="login-card">
+    <div class="brand login-brand"><span class="brand-mark">P</span><span>Pocket<span class="brand-light">Estate</span></span></div>
+    <p class="eyebrow">Get started</p><h1>Create your account.</h1><p class="login-copy">Set up a private workspace for your self-storage business.</p>
+    <div class="login-alert" th:if="${errorMessage}" th:text="${errorMessage}">Please check your details.</div>
+    <form method="post" action="/signup" enctype="multipart/form-data" th:object="${signupForm}">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <label>First name<input type="text" th:field="*{firstName}" autocomplete="given-name" required autofocus></label>
+        <label>Last name<input type="text" th:field="*{lastName}" autocomplete="family-name" required></label>
+        <label>Username<input type="text" th:field="*{username}" autocomplete="username" minlength="3" required autofocus></label>
+        <label>Email address<input type="email" th:field="*{email}" autocomplete="email" placeholder="you@gmail.com" required><small class="field-hint">Used for account notifications and recovery.</small></label>
+        <label>Profile picture <span class="optional">optional</span><input type="file" th:field="*{profilePicture}" accept="image/*"></label>
+        <label>Password<input type="password" th:field="*{password}" autocomplete="new-password" minlength="8" required><small class="field-hint">Use at least 8 characters.</small></label>
+        <label>Confirm password<input type="password" th:field="*{confirmPassword}" autocomplete="new-password" minlength="8" required></label>
+        <button class="primary-button login-button" type="submit">Create account <span>→</span></button>
+    </form>
+    <p class="auth-switch">Already have an account? <a href="/login">Log in</a></p>
+    <p class="login-foot">Pocket Estate · Private workspace</p>
+</main>
+</body>
+</html>

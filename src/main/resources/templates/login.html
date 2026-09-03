@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign in | Pocket Estate</title><link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/overrides.css"><link rel="stylesheet" href="/auth.css"><link rel="stylesheet" href="/profile.css">
+</head>
+<body class="login-page">
+<main class="login-card">
+    <div class="brand login-brand"><span class="brand-mark">P</span><span>Pocket<span class="brand-light">Estate</span></span></div>
+    <p class="eyebrow">Operations portal</p><h1>Welcome back.</h1><p class="login-copy">Sign in to manage your clients, units, and monthly payments.</p>
+    <div class="login-alert" th:if="${param.error}">Your username or password is incorrect.</div>
+    <div class="login-success" th:if="${param.logout}">You have been signed out.</div>
+    <div class="login-success" th:if="${param.created}">Account created. You can sign in now.</div>
+    <form method="post" action="/login">
+        <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+        <label>Username<input type="text" name="username" autocomplete="username" required autofocus></label>
+        <label>Password<input type="password" name="password" autocomplete="current-password" required></label>
+        <button class="primary-button login-button" type="submit">Sign in <span>→</span></button>
+    </form>
+    <p class="auth-switch">New to Pocket Estate? <a href="/signup">Create an account</a></p>
+    <p class="login-foot">Pocket Estate · Private workspace</p>
+</main>
+</body>
+</html>
