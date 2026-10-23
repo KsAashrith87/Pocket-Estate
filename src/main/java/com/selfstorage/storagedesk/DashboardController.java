@@ -37,62 +37,8 @@ public class DashboardController {
     }
 
     @GetMapping("/")
-    public String dashboard(Model model, Authentication authentication) {
-        AppUser owner = userRepository.findByUsernameIgnoreCase(authentication.getName()).orElseThrow();
-        String username = owner.getUsername();
-        String displayName = (owner.getFirstName() + " " + owner.getLastName()).trim();
-        if (displayName.isEmpty()) displayName = username;
-        String initials = displayName.replaceAll("[^A-Za-z ]", "").trim().replaceAll("\\s+", " ").chars()
-            .collect(StringBuilder::new, (builder, character) -> {
-                if (builder.length() < 2 && (builder.length() == 0 || character == ' ')) builder.appendCodePoint(character);
-            }, StringBuilder::append).toString().replace(" ", "").toUpperCase();
-        if (initials.isEmpty()) initials = username.substring(0, Math.min(2, username.length())).toUpperCase();
-        model.addAttribute("accountName", displayName);
-        model.addAttribute("accountProfilePicture", owner.getProfilePicture());
-        model.addAttribute("displayName", displayName);
-        model.addAttribute("accountInitials", initials);
-        model.addAttribute("profilePicture", owner.getProfilePicture());
-        model.addAttribute("accountEmail", owner.getEmail());
-        model.addAttribute("accountFirstName", owner.getFirstName());
-        model.addAttribute("accountLastName", owner.getLastName());
-        model.addAttribute("clients", clientRepository.findAllByOwnerOrderByNameAsc(owner));
-        model.addAttribute("units", storageUnitRepository.findAllByOwner(owner));
-        model.addAttribute("payments", paymentRepository.findTop8ByOwnerOrderByPaidOnDesc(owner));
-        model.addAttribute("clientCount", clientRepository.countByOwner(owner));
-        model.addAttribute("occupiedCount", storageUnitRepository.countByOwnerAndStatus(owner, "Occupied"));
-        long totalUnits = storageUnitRepository.countByOwner(owner);
-        long occupiedUnits = storageUnitRepository.countByOwnerAndStatus(owner, "Occupied");
-        model.addAttribute("unitOccupancyPercent", totalUnits == 0 ? 0 : occupiedUnits * 100 / totalUnits);
-        BigDecimal unitRevenue = storageUnitRepository.findAllByOwner(owner).stream()
-                .filter(unit -> "Occupied".equals(unit.getStatus()))
-                .map(StorageUnit::getMonthlyRate)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal houseRevenue = houseRepository.findAllByOwner(owner).stream()
-            .filter(house -> "Occupied".equals(house.getStatus()))
-            .map(House::getMonthlyRent)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-        model.addAttribute("monthlyRevenue", unitRevenue.add(houseRevenue));
-        String currentMonth = YearMonth.now().toString();
-        long expectedPayments = occupiedUnits + houseRepository.countByOwnerAndStatus(owner, "Occupied");
-        long recordedPayments = paymentRepository.countByOwnerAndBillingMonth(owner, currentMonth)
-            + rentPaymentRepository.countByOwnerAndBillingMonth(owner, currentMonth);
-        model.addAttribute("paymentsDue", Math.max(0, expectedPayments - recordedPayments));
-        model.addAttribute("houses", houseRepository.findAllByOwner(owner));
-        model.addAttribute("rentPayments", rentPaymentRepository.findTop8ByOwnerOrderByPaidOnDesc(owner));
-        model.addAttribute("houseCount", houseRepository.countByOwner(owner));
-        model.addAttribute("occupiedHouseCount", houseRepository.countByOwnerAndStatus(owner, "Occupied"));
-        model.addAttribute("monthlyRentRevenue", houseRepository.findAllByOwner(owner).stream()
-            .filter(house -> "Occupied".equals(house.getStatus()))
-            .map(House::getMonthlyRent)
-            .reduce(BigDecimal.ZERO, BigDecimal::add));
-        model.addAttribute("newHouse", new HouseForm());
-        model.addAttribute("newRentPayment", new RentPaymentForm());
-        model.addAttribute("monthLabel", YearMonth.now().getMonth().toString());
-        model.addAttribute("newClient", new ClientForm());
-        model.addAttribute("newPayment", new PaymentForm());
-        model.addAttribute("newUnit", new UnitForm());
-        model.addAttribute("auditLogs", auditLogRepository.findTop10ByUsernameOrderByCreatedAtDesc(username));
-        return "dashboard";
+    public String dashboard() {
+        return "forward:/app/index.html";
     }
 
     @PostMapping("/clients")

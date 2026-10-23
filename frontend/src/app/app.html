@@ -1,0 +1,190 @@
+@if (!user) {
+  <main class="auth-shell">
+    <section class="auth-card">
+      <div class="brand-mark">P</div>
+      <p class="eyebrow">POCKET ESTATE</p>
+      @if (authMode === 'login') {
+        <h1>Welcome back</h1>
+        <p class="muted">Sign in to manage your properties and tenants.</p>
+        <form (ngSubmit)="login()" #loginForm="ngForm">
+          <label>Username or email<input name="username" [(ngModel)]="loginFormData.username" autocomplete="username" required></label>
+          <label>Password<input name="password" type="password" [(ngModel)]="loginFormData.password" autocomplete="current-password" required></label>
+          <button class="primary-button full-width" [disabled]="busy || loginForm.invalid">{{ busy ? 'Signing in…' : 'Sign in' }}</button>
+        </form>
+        <p class="switch-auth">New here? <button class="link-button" (click)="authMode = 'signup'">Create an account</button></p>
+      } @else {
+        <h1>Create your account</h1>
+        <p class="muted">Set up your workspace to get started.</p>
+        <form (ngSubmit)="signup()" #signupForm="ngForm">
+          <div class="form-grid">
+            <label>First name<input name="firstName" [(ngModel)]="signupFormData.firstName" autocomplete="given-name" required></label>
+            <label>Last name<input name="lastName" [(ngModel)]="signupFormData.lastName" autocomplete="family-name" required></label>
+          </div>
+          <label>Username<input name="username" [(ngModel)]="signupFormData.username" autocomplete="username" minlength="3" required></label>
+          <label>Email<input name="email" type="email" [(ngModel)]="signupFormData.email" autocomplete="email" required></label>
+          <label>Password<input name="password" type="password" [(ngModel)]="signupFormData.password" autocomplete="new-password" minlength="8" required></label>
+          <button class="primary-button full-width" [disabled]="busy || signupForm.invalid">{{ busy ? 'Creating account…' : 'Create account' }}</button>
+        </form>
+        <p class="switch-auth">Already registered? <button class="link-button" (click)="authMode = 'login'">Sign in</button></p>
+      }
+      @if (errorMessage) { <p class="notice error">{{ errorMessage }}</p> }
+      @if (successMessage) { <p class="notice success">{{ successMessage }}</p> }
+    </section>
+  </main>
+} @else {
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#/dashboard" (click)="navigate('dashboard')"><span class="brand-mark">P</span><span>Pocket<span class="brand-light">Estate</span></span></a>
+      <nav aria-label="Main navigation">
+        <button [class.active]="page === 'dashboard'" (click)="navigate('dashboard')"><span>⌂</span>Overview</button>
+        <button [class.active]="page === 'clients'" (click)="navigate('clients')"><span>◉</span>Tenants & clients</button>
+        <button [class.active]="page === 'units'" (click)="navigate('units')"><span>▦</span>Storage units</button>
+        <button [class.active]="page === 'houses'" (click)="navigate('houses')"><span>⌂</span>Houses</button>
+        <button [class.active]="page === 'payments'" (click)="navigate('payments')"><span>↗</span>Payments</button>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="account-chip"><span class="avatar">{{ initials(user.displayName) }}</span><span><strong>{{ user.displayName }}</strong><small>{{ user.email }}</small></span></div>
+        <button class="logout-button" (click)="logout()">Sign out</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div><p class="eyebrow">{{ pageLabel() }}</p><h1>{{ greeting() }}, {{ user.displayName }}</h1></div>
+        <span class="date-label">{{ today | date:'fullDate' }}</span>
+      </header>
+      @if (errorMessage) { <p class="notice error" role="alert">{{ errorMessage }}</p> }
+      @if (successMessage) { <p class="notice success" role="status">{{ successMessage }}</p> }
+      @if (busy) { <p class="loading">Loading your workspace…</p> }
+
+      @if (dashboard; as data) {
+        @if (page === 'dashboard') {
+          <section class="metrics">
+            <article class="metric-card"><span>Monthly revenue</span><strong>{{ data.monthlyRevenue | currency }}</strong><small>From occupied properties</small></article>
+            <article class="metric-card"><span>Storage occupancy</span><strong>{{ data.occupiedUnits }} / {{ data.totalUnits }}</strong><small>{{ data.totalUnits - data.occupiedUnits }} available</small></article>
+            <article class="metric-card"><span>Tenants & clients</span><strong>{{ data.clientCount }}</strong><small>In your directory</small></article>
+            <article class="metric-card attention"><span>Payments due</span><strong>{{ data.paymentsDue }}</strong><small>{{ data.paymentsDue ? 'Needs attention' : 'All current' }}</small></article>
+            <article class="metric-card"><span>Occupied houses</span><strong>{{ data.occupiedHouses }} / {{ data.totalHouses }}</strong><small>{{ data.monthlyRentRevenue | currency }} monthly rent</small></article>
+          </section>
+          <section class="panel" aria-labelledby="notifications-title">
+            <div class="panel-heading"><div><p class="eyebrow">Stay on top of your portfolio</p><h2 id="notifications-title">Notifications</h2></div></div>
+            @for (notice of data.notifications; track notice.id) {
+              <div class="notification"><span class="notification-icon">!</span><div><strong>{{ notice.title }}</strong><p>{{ notice.message }}</p></div></div>
+            } @empty {
+              <p class="empty-state">You’re all caught up. No payment alerts right now.</p>
+            }
+          </section>
+          <section class="two-column">
+            <div class="panel"><div class="panel-heading"><div><p class="eyebrow">Latest activity</p><h2>Recent payments</h2></div><button class="text-button" (click)="navigate('payments')">View all</button></div>
+              @for (payment of data.payments; track payment.id) {
+                <div class="list-row"><span class="person-dot">{{ initials(payment.clientName) }}</span><div class="row-main"><strong>{{ payment.clientName }}</strong><small>{{ payment.billingMonth }} · {{ payment.method }}</small></div><strong>{{ payment.amount | currency }}</strong></div>
+              } @empty { <p class="empty-state">No payments recorded yet.</p> }
+              @for (payment of data.rentPayments; track payment.id) {
+                <div class="list-row"><span class="person-dot">$</span><div class="row-main"><strong>{{ payment.houseAddress }}</strong><small>{{ payment.billingMonth }} · Rent</small></div><strong>{{ payment.amount | currency }}</strong></div>
+              }
+            </div>
+            <div class="panel"><div class="panel-heading"><div><p class="eyebrow">Inventory</p><h2>Vacancies</h2></div></div>
+              <div class="vacancy-stat"><span>Storage units available</span><strong>{{ data.totalUnits - data.occupiedUnits }}</strong></div>
+              <div class="vacancy-stat"><span>Houses available</span><strong>{{ data.totalHouses - data.occupiedHouses }}</strong></div>
+              <button class="secondary-button full-width" (click)="navigate('units')">Manage inventory</button>
+            </div>
+          </section>
+        }
+
+        @if (page === 'clients') {
+          <section class="panel">
+            <div class="panel-heading"><div><p class="eyebrow">People directory</p><h2>Tenants & clients</h2></div><button class="primary-button" (click)="startClient()">＋ Add person</button></div>
+            @if (editingClient) {
+              <form class="inline-form" (ngSubmit)="saveClient()">
+                <label>Full name<input name="clientName" [(ngModel)]="clientForm.name" required></label>
+                <label>Email<input name="clientEmail" type="email" [(ngModel)]="clientForm.email" required></label>
+                <label>Phone<input name="clientPhone" [(ngModel)]="clientForm.phone" required></label>
+                <label>Notes<input name="clientNotes" [(ngModel)]="clientForm.notes"></label>
+                <div class="form-actions"><button class="primary-button" [disabled]="busy">Save</button><button type="button" class="secondary-button" (click)="editingClient = null">Cancel</button></div>
+              </form>
+            }
+            <div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Assigned property</th><th></th></tr></thead><tbody>
+              @for (client of data.clients; track client.id) {
+                <tr><td><strong>{{ client.name }}</strong></td><td>{{ client.email }}</td><td>{{ client.phone }}</td><td>{{ assignmentFor(client.id) }}</td><td class="actions"><button class="text-button" (click)="editClient(client)">Edit</button><button class="danger-button" (click)="deleteClient(client)">Delete</button></td></tr>
+              } @empty { <tr><td colspan="5" class="empty-state">No tenants or clients yet. Add one to get started.</td></tr> }
+            </tbody></table></div>
+          </section>
+        }
+
+        @if (page === 'units') {
+          <section class="panel">
+            <div class="panel-heading"><div><p class="eyebrow">Self-storage inventory</p><h2>Storage units</h2></div><button class="primary-button" (click)="startUnit()">＋ Add unit</button></div>
+            @if (editingUnit) {
+              <form class="inline-form" (ngSubmit)="saveUnit()">
+                <label>Unit number<input name="unitNumber" [(ngModel)]="unitForm.unitNumber" required></label>
+                <label>Size<input name="unitSize" [(ngModel)]="unitForm.size" placeholder="10 × 10" required></label>
+                <label>Monthly rate<input name="unitRate" type="number" min="0" step="0.01" [(ngModel)]="unitForm.monthlyRate" required></label>
+                <label>Assign tenant<select name="unitClient" [(ngModel)]="unitForm.clientId"><option [ngValue]="null">Vacant</option>@for (client of data.clients; track client.id) { <option [ngValue]="client.id">{{ client.name }}</option> }</select></label>
+                <div class="form-actions"><button class="primary-button" [disabled]="busy">Save unit</button><button type="button" class="secondary-button" (click)="editingUnit = null">Cancel</button></div>
+              </form>
+            }
+            <div class="table-wrap"><table><thead><tr><th>Unit</th><th>Size</th><th>Tenant</th><th>Monthly rate</th><th>Status</th><th></th></tr></thead><tbody>
+              @for (unit of data.units; track unit.id) {
+                <tr><td><strong>{{ unit.unitNumber }}</strong></td><td>{{ unit.size }}</td><td>{{ unit.clientName || 'Unassigned' }}</td><td>{{ unit.monthlyRate | currency }}</td><td><span class="status-tag" [class.occupied]="unit.status === 'Occupied'">{{ unit.status }}</span></td><td class="actions"><button class="text-button" (click)="editUnit(unit)">Edit</button><button class="danger-button" (click)="deleteUnit(unit)">Delete</button></td></tr>
+              } @empty { <tr><td colspan="6" class="empty-state">No units yet. Add your first storage unit.</td></tr> }
+            </tbody></table></div>
+          </section>
+        }
+
+        @if (page === 'houses') {
+          <section class="panel">
+            <div class="panel-heading"><div><p class="eyebrow">Residential portfolio</p><h2>Houses</h2></div><button class="primary-button" (click)="startHouse()">＋ Add house</button></div>
+            @if (editingHouse) {
+              <form class="inline-form" (ngSubmit)="saveHouse()">
+                <label>Address<input name="houseAddress" [(ngModel)]="houseForm.address" required></label>
+                <label>Monthly rent<input name="houseRent" type="number" min="0" step="0.01" [(ngModel)]="houseForm.monthlyRent" required></label>
+                <label>Assign tenant<select name="houseTenant" [(ngModel)]="houseForm.tenantId"><option [ngValue]="null">Vacant</option>@for (client of data.clients; track client.id) { <option [ngValue]="client.id">{{ client.name }}</option> }</select></label>
+                <div class="form-actions"><button class="primary-button" [disabled]="busy">Save house</button><button type="button" class="secondary-button" (click)="editingHouse = null">Cancel</button></div>
+              </form>
+            }
+            <div class="table-wrap"><table><thead><tr><th>Address</th><th>Tenant</th><th>Monthly rent</th><th>Status</th><th></th></tr></thead><tbody>
+              @for (house of data.houses; track house.id) {
+                <tr><td><strong>{{ house.address }}</strong></td><td>{{ house.tenantName || 'Unassigned' }}</td><td>{{ house.monthlyRent | currency }}</td><td><span class="status-tag" [class.occupied]="house.status === 'Occupied'">{{ house.status }}</span></td><td class="actions"><button class="text-button" (click)="editHouse(house)">Edit</button><button class="danger-button" (click)="deleteHouse(house)">Delete</button></td></tr>
+              } @empty { <tr><td colspan="5" class="empty-state">No houses yet. Add a property to track rent and vacancies.</td></tr> }
+            </tbody></table></div>
+          </section>
+        }
+
+        @if (page === 'payments') {
+          <section class="two-column">
+            <div class="panel"><div class="panel-heading"><div><p class="eyebrow">Storage collection</p><h2>Record a unit payment</h2></div></div>
+              <form class="stack-form" (ngSubmit)="savePayment()">
+                <label>Tenant<select name="paymentClient" [(ngModel)]="paymentForm.clientId" required><option [ngValue]="null">Choose tenant</option>@for (client of data.clients; track client.id) { <option [ngValue]="client.id">{{ client.name }}</option> }</select></label>
+                <label>Amount<input name="paymentAmount" type="number" min="0" step="0.01" [(ngModel)]="paymentForm.amount" required></label>
+                <label>Billing month<input name="paymentMonth" type="month" [(ngModel)]="paymentForm.billingMonth" required></label>
+                <label>Method<select name="paymentMethod" [(ngModel)]="paymentForm.method"><option>ACH</option><option>Card</option><option>Cash</option><option>Check</option></select></label>
+                <button class="primary-button" [disabled]="busy || !data.clients.length">Record payment</button>
+              </form>
+            </div>
+            <div class="panel"><div class="panel-heading"><div><p class="eyebrow">Residential collection</p><h2>Record rent</h2></div></div>
+              <form class="stack-form" (ngSubmit)="saveRentPayment()">
+                <label>House<select name="rentHouse" [(ngModel)]="rentPaymentForm.houseId" required><option [ngValue]="null">Choose house</option>@for (house of data.houses; track house.id) { <option [ngValue]="house.id">{{ house.address }}</option> }</select></label>
+                <label>Amount<input name="rentAmount" type="number" min="0" step="0.01" [(ngModel)]="rentPaymentForm.amount" required></label>
+                <label>Billing month<input name="rentMonth" type="month" [(ngModel)]="rentPaymentForm.billingMonth" required></label>
+                <label>Method<select name="rentMethod" [(ngModel)]="rentPaymentForm.method"><option>ACH</option><option>Card</option><option>Cash</option><option>Check</option></select></label>
+                <button class="primary-button" [disabled]="busy || !data.houses.length">Record rent</button>
+              </form>
+            </div>
+          </section>
+          <section class="two-column">
+            <div class="panel"><div class="panel-heading"><div><p class="eyebrow">Latest transactions</p><h2>Unit payments</h2></div></div>
+              @for (payment of data.payments; track payment.id) {
+                <div class="list-row"><div class="row-main"><strong>{{ payment.clientName }}</strong><small>{{ payment.billingMonth }} · {{ payment.paidOn | date:'mediumDate' }} · {{ payment.method }}</small></div><strong>{{ payment.amount | currency }}</strong><button class="danger-button" (click)="deletePayment(payment)">Delete</button></div>
+              } @empty { <p class="empty-state">No unit payments recorded.</p> }
+            </div>
+            <div class="panel"><div class="panel-heading"><div><p class="eyebrow">Latest transactions</p><h2>Rent payments</h2></div></div>
+              @for (payment of data.rentPayments; track payment.id) {
+                <div class="list-row"><div class="row-main"><strong>{{ payment.houseAddress }}</strong><small>{{ payment.billingMonth }} · {{ payment.paidOn | date:'mediumDate' }} · {{ payment.method }}</small></div><strong>{{ payment.amount | currency }}</strong><button class="danger-button" (click)="deleteRentPayment(payment)">Delete</button></div>
+              } @empty { <p class="empty-state">No rent payments recorded.</p> }
+            </div>
+          </section>
+        }
+      }
+    </main>
+  </div>
+}

@@ -1,61 +1,66 @@
 # Pocket Estate
 
-A small Spring Boot web app for managing self-storage clients, unit occupancy, and monthly payments.
+Pocket Estate is an Angular single-page application backed by Spring Boot and MySQL. It provides account registration and sign-in, tenant/client records, storage unit and house inventory, rent/payment tracking, occupancy and vacancy summaries, payment-due notifications, and an audit trail.
 
-## Run locally
+## Run locally with Docker
 
-Requires JDK 17+ and Maven 3.9+.
-
-```bash
-mvn spring-boot:run
-```
-
-Open http://localhost:8080. You will be sent to the sign-in screen before accessing the workspace.
-
-For a new local installation, select **Create an account** on the first screen. Development can use the file-backed H2 database at `./data/storage-desk`; H2 console access is disabled by default.
-
-## Current workflows
-
-- Review revenue, occupancy, active clients, and payment attention items.
-- Add a client from the dashboard.
-- View recent payments and unit occupancy.
-- Review client contact details, assigned unit, monthly rate, and status.
-- Add and remove storage units, assign units to clients, and change availability.
-- Record and remove monthly payments.
-- Sign out from the workspace when finished.
-- Change the signed-in account password from the Account menu.
-- Keep an audit trail of client, unit, payment, and password changes.
-- Add houses, assign tenants, set monthly rent, and record rent payments.
-
-## PostgreSQL setup
-
-Install Docker Desktop, copy the environment template, and start PostgreSQL:
+Requires Docker Engine with Docker Compose.
 
 ```bash
 cp .env.example .env
-# Edit .env and replace DATABASE_PASSWORD with a long random value.
-docker compose --env-file .env up -d postgres
-set -a; source .env; set +a
-mvn spring-boot:run
+# Replace DATABASE_ROOT_PASSWORD and DATABASE_PASSWORD with unique, long random values.
+docker compose up --build
 ```
 
-The application uses `DATABASE_URL`, `DATABASE_USERNAME`, and `DATABASE_PASSWORD` from the environment. Production uses `FLYWAY_ENABLED=true` and `DDL_AUTO=validate`; Flyway applies the versioned schema in `src/main/resources/db/migration` before the application starts.
+Open http://localhost:8080 and create an account. The MySQL database persists in the `storage-mysql` Docker volume. MySQL is bound to the host loopback interface only. Keep `.env` private and never commit real credentials.
 
-## Publish as a website
+To stop the app without deleting its database:
 
-The repository includes a production `Dockerfile` and a Render deployment template in `render.yaml`. The one-time owner setup is to create a Render account, create a managed PostgreSQL database, and provide the database connection values in the service environment. The `DATABASE_URL` must use JDBC format, for example `jdbc:postgresql://host:5432/storage_desk`.
+```bash
+docker compose down
+```
 
-After deployment, send users the website URL. They can select **Create an account**, sign in, and manage their own clients, units, and payments without you creating accounts or entering data for them. Each account is isolated from the others.
+Do not use `docker compose down -v` unless intentionally deleting every account and all associated business data.
 
-Hosting, domain registration, database billing, backups, and the legal responsibility for customer data still belong to the site owner; those cannot be automated by application code.
+## Angular development server
 
-## Production checklist
+For frontend hot reload, first start MySQL:
 
-This version has working authentication, BCrypt password hashing, CSRF protection, PostgreSQL support, and secure session cookie options. Before deploying publicly:
+```bash
+docker compose up -d mysql
+```
 
-- Put the app behind HTTPS and set `SESSION_COOKIE_SECURE=true`.
-- Use a managed PostgreSQL database with automated encrypted backups and point-in-time recovery.
-- Add Flyway or Liquibase migrations before changing the production schema.
-- Add password reset, account administration, rate limiting, and role-based permissions.
-- Configure monitoring, error tracking, restore drills, and a separate staging environment.
-- Do not enable `APP_DEMO_DATA_ENABLED` or the H2 console in production.
+Run Spring Boot with the database values from `.env` and `DATABASE_URL=jdbc:mysql://localhost:3306/storage_desk`, then start Angular in another terminal:
+
+```bash
+set -a; source .env; set +a
+DATABASE_URL=jdbc:mysql://localhost:3306/storage_desk mvn spring-boot:run
+```
+
+```bash
+cd frontend
+npm ci
+npm start
+```
+
+The Angular dev server listens on port 4200 and proxies `/api` requests to Spring Boot on port 8080. For a packaged application, `npm run build` creates `frontend/dist/browser`; Maven includes those assets in the Spring Boot jar.
+
+## Data and migrations
+
+MySQL 8.4 is the application database. Flyway applies the SQL migrations in `src/main/resources/db/migration`; Hibernate validates the resulting schema at startup. `DATABASE_URL`, `DATABASE_USERNAME`, and `DATABASE_PASSWORD` can be overridden for another MySQL host. The supported URL format is `jdbc:mysql://host:3306/storage_desk`.
+
+The old local H2 database was intentionally removed. The test suite uses an isolated in-memory H2 database; it is not used for application data.
+
+## Deploy to AWS EC2
+
+Terraform configuration for the EC2 instance, Elastic IP, HTTPS/HTTP security group, encrypted root volume, and Systems Manager access is in [`deploy/ec2/terraform/`](./deploy/ec2/terraform/). Follow [`deploy/ec2/README.md`](./deploy/ec2/README.md) to provision the instance, point DNS at its IP, configure private environment variables, and run Docker Compose with Caddy TLS.
+
+This is a single-instance deployment with MySQL stored on the EC2 Docker volume, not a highly available database service. For real customer data, use off-instance backups and consider Amazon RDS for MySQL, automated recovery, monitoring, and a managed secret store. The Terraform configuration provisions billable AWS resources only when you explicitly run `terraform apply`.
+
+## Security and operational notes
+
+- Spring Security uses BCrypt password hashes, session authentication, and CSRF protection for browser API requests.
+- The public EC2 security group exposes only ports 80 and 443; administration uses Systems Manager instead of public SSH.
+- Set `SESSION_COOKIE_SECURE=true` when serving behind HTTPS. The EC2 Compose override enables it.
+- New users create their own accounts; the empty local database has no pre-created accounts.
+- Password reset, administrator account management, persistent/email notifications, rate limiting, and multi-instance high availability are not implemented.

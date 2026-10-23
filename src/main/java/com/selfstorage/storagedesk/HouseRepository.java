@@ -8,4 +8,5 @@ public interface HouseRepository extends JpaRepository<House, Long> {
     long countByOwner(AppUser owner);
     long countByOwnerAndStatus(AppUser owner, String status);
     boolean existsByIdAndOwner(Long id, AppUser owner);
+    boolean existsByTenantId(Long tenantId);
 }

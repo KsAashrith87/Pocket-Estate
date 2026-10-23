@@ -1,20 +1,39 @@
 services:
-  postgres:
-    image: postgres:16-alpine
+  mysql:
+    image: mysql:8.4
     restart: unless-stopped
     environment:
-      POSTGRES_DB: storage_desk
-      POSTGRES_USER: storage_app
-      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env}
+      MYSQL_DATABASE: storage_desk
+      MYSQL_USER: storage_app
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD: ${DATABASE_ROOT_PASSWORD:?Set DATABASE_ROOT_PASSWORD in .env}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
     volumes:
-      - storage-postgres:/var/lib/postgresql/data
+      - storage-mysql:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U storage_app -d storage_desk"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
       interval: 10s
       timeout: 5s
       retries: 5
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: jdbc:mysql://mysql:3306/storage_desk
+      DATABASE_USERNAME: storage_app
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?Set DATABASE_PASSWORD in .env}
+      DDL_AUTO: validate
+      FLYWAY_ENABLED: "true"
+      THYMELEAF_CACHE: "true"
+      SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-false}
+      APP_DEMO_DATA_ENABLED: "false"
+      PORT: 8080
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
 
 volumes:
-  storage-postgres:
+  storage-mysql:

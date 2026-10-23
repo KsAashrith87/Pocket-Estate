@@ -29,7 +29,9 @@ public class AccountController {
     public String accountSettings(Authentication authentication, Model model) {
         AppUser user = users.findByUsernameIgnoreCase(authentication.getName()).orElseThrow();
         model.addAttribute("user", user);
-        String name = (user.getFirstName() + " " + user.getLastName()).trim();
+        String firstName = user.getFirstName() == null ? "" : user.getFirstName().trim();
+        String lastName = user.getLastName() == null ? "" : user.getLastName().trim();
+        String name = (firstName + " " + lastName).trim();
         String initials = name.isBlank() ? user.getUsername().substring(0, Math.min(2, user.getUsername().length())).toUpperCase()
             : name.substring(0, 1).toUpperCase();
         model.addAttribute("accountInitials", initials);

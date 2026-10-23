@@ -6,4 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface RentPaymentRepository extends JpaRepository<RentPayment, Long> {
     List<RentPayment> findTop8ByOwnerOrderByPaidOnDesc(AppUser owner);
     long countByOwnerAndBillingMonth(AppUser owner, String billingMonth);
+    boolean existsByHouseId(Long houseId);
 }

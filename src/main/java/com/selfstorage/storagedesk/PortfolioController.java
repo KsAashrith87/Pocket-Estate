@@ -77,7 +77,9 @@ public class PortfolioController {
     }
 
     private String displayName(AppUser owner) {
-        String name = (owner.getFirstName() + " " + owner.getLastName()).trim();
+        String firstName = owner.getFirstName() == null ? "" : owner.getFirstName().trim();
+        String lastName = owner.getLastName() == null ? "" : owner.getLastName().trim();
+        String name = (firstName + " " + lastName).trim();
         return name.isBlank() ? owner.getUsername() : name;
     }
 

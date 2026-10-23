@@ -15,8 +15,11 @@ public class AppUser {
     private String username;
     @Column(unique = true)
     private String email;
+    @Column(length = 120, nullable = false)
     private String firstName;
+    @Column(length = 120, nullable = false)
     private String lastName;
+    @Column(length = 500)
     private String profilePicture;
     private String password;
     private String role;
